@@ -3,23 +3,29 @@ sudo: false
 cache:
   packages: true
   directories:
-  - _book
+  - _bookdown_files
+  - $HOME/.npm
 
-pandoc_version: 1.17.2
+pandoc_version: 2.1.1
 
-before_install:
+before_script:
 - mkdir ~/.R
 - cp Makevars ~/.R
-
 script:
 - Rscript -e 'bookdown::render_book("index.Rmd")'
 
-deploy:
-  skip_cleanup: true
-  provider: s3
-  access_key_id: AKIAJYY6UT5EHUXEKWCA
-  secret_access_key:
-    secure: "Ogjfu+wBbKDtY1VJQnfGejNcxPx2iEwlSgEeTHC7M5jyuSIdYdaf0IbJ9LlDSxA/vcO/NbGOzEdPKevuiRgcU7Bj+J7tlOrvw6WC4R1RK4JQNowuxoDOwNlAvPD5O5DMiIwku+xbjcxyIwU1yPWIjCgpOmAAHMgBeYI+4+N9Ggk="
-  bucket: adv-r.hadley.nz
-  local-dir: _book
-  region: us-west-1
+matrix:
+  include:
+  - r: release
+    env: rlang='CRAN'
+    after_success:
+    - nvm install stable
+    - npm install netlify-cli -g
+    deploy:
+      provider: script
+      script: netlify deploy --prod --dir _book
+      skip_cleanup: true
+  - r: release
+    env: rlang='github'
+    before_script: Rscript -e "remotes::install_github('r-lib/rlang')"
+  - r: devel
